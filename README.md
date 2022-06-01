@@ -4,6 +4,37 @@
 
 ## CMLS 2022 - HW3
 
+## Folder Structure
+```bash
+.
+├── ARDUINO
+│   └── def
+│       └── def.ino
+├── GUI
+│   ├── GUI.pde
+│   ├── data
+│   │   ├── bucket_res.png
+│   │   ├── buttons
+│   │   │   ├── avanti_a.png
+│   │   │   ├── avanti_b.png
+│   │   │   ├── ...
+│   │   ├── covers
+│   │   │   ├── 0.jpg
+│   │   │   ├── ...
+│   │   ├── eq.png
+│   │   ├── lego-mosaic-2.jpg
+│   │   ├── logo.png
+│   │   └── songs
+│   │       └── instructions.md
+│   ├── fonts
+│   │   ├── Minecraft.ttf
+│   │   └── Perfect DOS VGA 437.ttf
+│   └── songs.csv
+├── README.md
+├── playlist.scd
+└── report HW3 - TheGetirs.pdf
+```
+
 # Introduction 
 In this project, we focused on the creation of an application that allows the
 user to choose a song among the ones in a playlist, play it and modify it with
