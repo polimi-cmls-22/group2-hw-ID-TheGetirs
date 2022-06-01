@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 OscP5 oscP5;
 NetAddress myRemoteLocation;
 
-//GUI variables
+// GUI variables
 PShape blur;
 PImage coverBig;
 PImage logo;
@@ -29,13 +29,13 @@ ArrayList<Song> parsedSongs;
 float speed;
 float lpfrate;
 float realRate;
-//Cutoff frequency displayed value
+// Cutoff frequency displayed value
 int cutoff;
-//values for the rgb rectangle
+// values for the rgb rectangle
 int r = -1, g = -1, b = -1;
 //indice per la canzone attiva
 int isPlaying=0;
-//numero di canzoni
+// numero di canzoni
 int nRows;
 // variabili cover piccole
 ArrayList<PImage> coverSmall = new ArrayList();
@@ -136,7 +136,6 @@ void setup() {
 
 
   volumeSlider = cp5.addSlider("volumeSlider")
-    //.setColorValue(color(255))
     .setColorActive(color(55, 240, 147))
     .setColorForeground(color(155))
     .setColorBackground(color(48, 54, 51))
@@ -150,7 +149,6 @@ void setup() {
 
   //RGB COLOR CHANGING RECTANGLE
   rgbRect = createShape(RECT, 0, 0, 150, 150);
-  //rgbRect.fill(0, 0, 255);
   rgbRect.setStroke(false);
   rgbRect.setFill(color(201, 196, 181));
   rgbRect.setStroke(false);
@@ -174,8 +172,6 @@ void setup() {
   //playback speed rotation
   speed = 0;
   lpfrate= 0;
-
-  //blurred.resize(240, 240);
 
   blur = createShape();
   blur.beginShape();
@@ -237,11 +233,6 @@ void draw() {
 
   shape(rgbRect, 1025, 170);
 
-  //fill(255,0,14);
-  //rect(1000,170,170,170);
-  //shape(rgbRect, 1025, 170);
-
-
   image(coverBig, 400, 170, 380, 380);
   image(logo, 480, -95, 600, 300);
   image(eq, 955, 115, 295, 295);
@@ -292,7 +283,6 @@ void draw() {
     blur.endShape();
     shape(blur);
   } else {
-    //image(blurred,1060,450,100,100);
     blur = createShape();
     blur.beginShape();
     blur.texture(blurred2);
@@ -321,7 +311,7 @@ Map<String, Object> makeItem(String title, String artist, String theCopy, PImage
 
 
 void menu(int i) {
-  //println("got some menu event from item with index "+i);
+  // println("got some menu event from item with index "+i);
 }
 
 //callback function when the slider is moved
@@ -333,7 +323,7 @@ void volumeSlider() {
     } else {
       myMessage.add(volumeSlider.getValue());
       oscP5.send(myMessage, myRemoteLocation);
-      println("Slider event. OSC volume " + volumeSlider.getValue() + "message sent");
+      // println("Slider event. OSC volume " + volumeSlider.getValue() + "message sent");
     }
   }
 }
@@ -347,8 +337,8 @@ void changePlayingState() {
 }
 
 void changePauseImg() {
-  PImage[] imgs1 = {loadImage("/buttons/button_a.png"), loadImage("buttons/button_b.png"), loadImage("buttons/button_c.png")};
-  PImage[] imgs4 = {loadImage("/buttons/pausa_a.png"), loadImage("buttons/pausa_b.png"), loadImage("buttons/pausa_c.png")};
+  PImage[] imgs1 = {loadImage("buttons/button_a.png"), loadImage("buttons/button_b.png"), loadImage("buttons/button_c.png")};
+  PImage[] imgs4 = {loadImage("buttons/pausa_a.png"), loadImage("buttons/pausa_b.png"), loadImage("buttons/pausa_c.png")};
   int j;
   for (j = 0; j < imgs1.length; j++) {
     imgs1[j].resize(40, 40);
@@ -380,7 +370,7 @@ public void controlEvent(ControlEvent theEvent) {
     //INDICE INTERNO PER GESTIRE LA CANZONE ATTIVA [1,N colonne del csv]
     isPlaying = index;
     coverBig = loadImage("covers/"+(isPlaying)+".jpg");
-    println("Is Playing (Menu): "+isPlaying);
+    // println("Is Playing (Menu): "+isPlaying);
     changeImgIfPaused();
   }
 }
@@ -390,7 +380,7 @@ public void play() {
   changePauseImg();
   OscMessage myMessage = new OscMessage("/playPause");
   oscP5.send(myMessage, myRemoteLocation);
-  println(myMessage);
+  // println(myMessage);
 }
 
 public void avantiGUI() {
@@ -400,7 +390,7 @@ public void avantiGUI() {
   } else {
     isPlaying++;
   }
-  println("Is Playing (Avanti): "+isPlaying);
+  // println("Is Playing (Avanti): "+isPlaying);
   coverBig = loadImage("covers/"+(isPlaying)+".jpg");
   changeImgIfPaused();
 }
@@ -420,7 +410,7 @@ public void indietroGUI() {
     isPlaying--;
   }
   coverBig = loadImage("covers/"+(isPlaying)+".jpg");
-  println("Is Playing (Indietro): "+isPlaying);
+  // println("Is Playing (Indietro): "+isPlaying);
 }
 
 public void indietro() {
@@ -448,9 +438,9 @@ void changeBoostText() {
 /* incoming osc message are forwarded to the oscEvent method. */
 void oscEvent(OscMessage theOscMessage) {
   /* print the address pattern and the typetag of the received OscMessage */
-  print("### received an osc message.");
-  print(" addrpattern: "+theOscMessage.addrPattern());
-  println(" typetag: "+theOscMessage.typetag());
+  // print("### received an osc message.");
+  // print(" addrpattern: "+theOscMessage.addrPattern());
+  // println(" typetag: "+theOscMessage.typetag());
 
   // messages we receive from SC (and really from the serial connection with arduino)
   if (theOscMessage.checkAddrPattern("/volumeSerial")==true) {         // volume
@@ -486,12 +476,11 @@ void oscEvent(OscMessage theOscMessage) {
   } else if (theOscMessage.addrPattern().equals("/lpf")) {           // lpf
     blurFactor = 9 - theOscMessage.get(0).floatValue();
     cutoff = theOscMessage.get(1).intValue();
-    println("Cutoff :"+cutoff);
-    println("blurFactor:" + blurFactor);
+    // println("Cutoff :"+cutoff);
+    // println("blurFactor:" + blurFactor);
     blurCheck = 1;
-    println("blurCheck" + blurCheck);
+    // println("blurCheck" + blurCheck);
     blurred2 = loadImage("bucket_res.png");
-    //blurred2.resize(240, 240);
     blurred2.filter(BLUR, blurFactor);
   } else if (theOscMessage.checkAddrPattern("/red")==true) {           // red
     r = (int) theOscMessage.get(0).floatValue();
@@ -502,7 +491,7 @@ void oscEvent(OscMessage theOscMessage) {
         changeBoostText();
       }
     }
-    //println(r + " " + g + " " + b);
+    // println(r + " " + g + " " + b);
   } else if (theOscMessage.checkAddrPattern("/green")==true) {         // green
     g = (int) theOscMessage.get(0).floatValue();
     if (r != -1 && b != -1) {
@@ -511,17 +500,17 @@ void oscEvent(OscMessage theOscMessage) {
         changeBoostText();
       }
     }
-    //println(r + " " + g + " " + b);
+    // println(r + " " + g + " " + b);
   } else if (theOscMessage.checkAddrPattern("/blue")==true) {          // blue
     b = (int) theOscMessage.get(0).floatValue();
     if (r != -1 && g != -1) {
-      println(r + " " + g + " " + b);
+      // println(r + " " + g + " " + b);
       if (rgbRect != null) {
         rgbRect.setFill(color(r, g, b));
         changeBoostText();
       }
     }
-    //println(r + " " + g + " " + b);
+    // println(r + " " + g + " " + b);
   } else if (theOscMessage.checkAddrPattern("/pause") == true) {       // play-pause
     changePlayingState();
     changePauseImg();

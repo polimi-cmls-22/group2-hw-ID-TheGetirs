@@ -5,7 +5,7 @@ SerialPort.devices; // select your correct serial port modifying the serialPort 
 
 var path = thisProcess.nowExecutingPath.dirname ++ "/GUI/data/songs/";
 var netAddr = "127.0.0.1", netPort = 12000;
-var serialPort = "COM4", serialBaud = 9600; // "/dev/cu.usbmodem1443101"
+var serialPort = "/dev/cu.usbmodem1423101", serialBaud = 9600; // "/dev/cu.usbmodem1443101"
 
 s.boot;
 
@@ -26,6 +26,7 @@ OSCdef('OSCreceiverCloseApp',
 	"/closeApp");
 
 ~applicationSynth = {
+	// real LegoPlayer app
 
 	var sampleRate;
 	var startingTime, pauseTime, elapsedTime, elapsedSamples = 0, isPaused = false;
@@ -34,17 +35,23 @@ OSCdef('OSCreceiverCloseApp',
 	var mute = 1;
 
 	var checkVolume = {
+		// keeps volume between the limits
+
 		if (volume < 0, { volume = 0 });
 		if (volume > 1, { volume = 1 });
 	};
 
 	var resetPause = {
+		// new song is starting, reset of the pause related variables for correctly computing the stop if the user pauses
+
 		startingTime = Date.getDate.rawSeconds;
 		elapsedSamples = 0;
 		isPaused = false;
 	};
 
 	var playSynth = {
+		// creates the playing synth according to the parameters and registers it on the NodeWatcher
+
 		arg inbus, bufnum = 0, amp, rate = 1, startPos = 0;
 		if(~synth.isRunning, { ~synth.free; });
 		~synth = Synth(\song,[
@@ -60,6 +67,8 @@ OSCdef('OSCreceiverCloseApp',
 	};
 
 	var nextSong = {
+		// changes playing song to the next one
+
 		arg naturalTurnOrSerial = true; // if the skip is from OSC i dont need to change image on GUI
 		~songPlaying = ~songPlaying + 1;
 		playSynth.value(
@@ -74,6 +83,8 @@ OSCdef('OSCreceiverCloseApp',
 	};
 
 	var prevSong = {
+		// changes playing song to the previews one
+
 		~songPlaying = ~songPlaying - 1;
 		playSynth.value(
 			inbus:~bus,
@@ -85,20 +96,22 @@ OSCdef('OSCreceiverCloseApp',
 	};
 
 	var pauseSong = {
+		// pauses the song
+
 		var newSamples;
 		if(isPaused == false, {
+			// update elapsedSamples
+
 			pauseTime = Date.getDate.rawSeconds;
 			elapsedTime = pauseTime - startingTime;
-			//postln(elapsedTime);
-			//postln(elapsedSamples);
 			newSamples = elapsedTime * sampleRate * lastRate;
-			//postln(newSamples);
 			elapsedSamples = elapsedSamples + newSamples;
-			//postln(elapsedSampl.es);
 			~songSkip = true;
-			if(~synth.isRunning, { ~synth.free; });
+			if(~synth.isRunning, { ~synth.free; }); // stop the synth
 			isPaused = true;
 		}, {
+			// create the synth starting from the elapsedSample sample
+
 			playSynth.value(
 				inbus:~bus,
 				bufnum:~bufnumArray.at(~songPlaying % ~numSongs),
@@ -112,16 +125,13 @@ OSCdef('OSCreceiverCloseApp',
 	};
 
 	var updateElapsedSamples = {
-		// i received a new rate so i update the played samples
+		// updates elapsedSamples in case of a new playing rate is received
+
 		var newSamples;
 		var newRateTime = Date.getDate.rawSeconds;
 		elapsedTime = newRateTime - startingTime;
 		newSamples = elapsedTime * sampleRate * lastRate;
-		// postln(elapsedTime);
-		// postln(elapsedSamples);
-		// postln(newSamples);
 		elapsedSamples = elapsedSamples + newSamples;
-		// postln(elapsedSamples);
 		startingTime = Date.getDate.rawSeconds;
 	};
 
@@ -133,8 +143,8 @@ OSCdef('OSCreceiverCloseApp',
 
 	~bufnumArray = Array.newClear(~numSongs);
 
-	//~bufnumArray[0] = Buffer.read(s, path ++ "0_Giant_Steps.wav").bufnum;
-	~bufnumArray[0] = Buffer.read(s, path ++ "piano2.wav").bufnum;
+	~bufnumArray[0] = Buffer.read(s, path ++ "0_Giant_Steps.wav").bufnum;
+	//~bufnumArray[0] = Buffer.read(s, path ++ "piano2.wav").bufnum; // to test natural turning of songs
 
 	~bufnumArray[1] = Buffer.read(s, path ++ "1_Tarumbo.wav").bufnum;
 
@@ -160,18 +170,18 @@ OSCdef('OSCreceiverCloseApp',
 			if(ascii.isDecDigit,{~charArray =
 				~charArray.add(ascii)});
 
-			// photoresistor
+			// photoresistor -> LPF
 			if(ascii == $L,{
 				var lightVal=~charArray.collect(_.digit).convertDigits;
-				~cutoffFreq = lightVal * 200; // results in a * 20000
+				~cutoffFreq = lightVal * 200; // results in a [0:20000]
 				if (~cutoffFreq > 20000, { ~cutoffFreq = 20000 });
-				postln(~cutoffFreq);
+				// postln(~cutoffFreq);
 				~master.set(\freq, ~cutoffFreq);
 				n.sendMsg("/lpf", ~cutoffFreq.linlin(0,20000,1,8), ~cutoffFreq);
 				~charArray = [ ];
 			});
 
-			// proximity sensor
+			// proximity sensor -> Playback Pate
 			if(ascii == $D,{
 				var newRate = ~charArray.collect(_.digit).convertDigits;
 				newRate = newRate / 100; // results in a [0.5:2]
@@ -186,43 +196,40 @@ OSCdef('OSCreceiverCloseApp',
 				~charArray = [ ];
 			});
 
-			// rgb sensor
+			// rgb sensor -> Equalizer
 			if(ascii == $R,{
 				~rVal=~charArray.collect(_.digit).convertDigits;
 				~rVal = ~rVal/21504;
-				//postln(~rVal);
 				n.sendMsg("/red", ~rVal*255*2);
 				if( ((~rVal)*125) < 35, {~lboost = ((~rVal)*125);}, {~lboost = 35;});
-				//postln(~lboost);
+				// postln(~lboost);
 				~master.set(\lboost, ~lboost);
 				~charArray = [ ];
 			});
 			if(ascii == $G,{
 				~gVal=~charArray.collect(_.digit).convertDigits;
 				~gVal = ~gVal/21504;
-				//postln(~gVal);
 				n.sendMsg("/green", ~gVal*255*2);
 				if( ((~gVal)*100) < 18, {~mboost = ((~gVal)*100);}, {~mboost = 18;});
-				//postln(~mboost);
+				// postln(~mboost);
 				~master.set(\mboost, ~mboost);
 				~charArray = [ ];
 			});
 			if(ascii == $B,{
 				~bVal=~charArray.collect(_.digit).convertDigits;
 				~bVal = ~bVal /21504;
-				//postln(~bVal);
 				n.sendMsg("/blue", ~bVal*255*1.5);
 				if( ((~bVal)*100) < 18, {~hboost = ((~bVal)*100);}, {~hboost = 18;});
-				//postln(~hboost);
-				//postln("-----");
+				// postln(~hboost);
+				// postln("-----");
 				~master.set(\hboost, ~hboost);
 				~charArray = [ ];
 			});
 
 			// IR receiver
-			if(ascii == $M,{
+			if(ascii == $M,{ // mute
 				mute = (mute + 1) % 2;
-				postln(mute);
+				// postln(mute);
 
 				n.sendMsg("/volumeSerial", mute*volume);
 				if(~synth.isRunning, {
@@ -230,9 +237,9 @@ OSCdef('OSCreceiverCloseApp',
 				});
 				~charArray = [ ];
 			});
-			if(ascii == $+,{
+			if(ascii == $+,{ // increase volume
 				volume = volume + 0.1;
-				postln(volume);
+				// postln(volume);
 
 				checkVolume.value;
 				n.sendMsg("/volumeSerial", volume);
@@ -241,9 +248,9 @@ OSCdef('OSCreceiverCloseApp',
 				});
 				~charArray = [ ];
 			});
-			if(ascii == $-,{
+			if(ascii == $-,{ // decrease volume
 				volume = volume - 0.1;
-				postln(volume);
+				// postln(volume);
 
 				checkVolume.value;
 				n.sendMsg("/volumeSerial", volume);
@@ -252,31 +259,33 @@ OSCdef('OSCreceiverCloseApp',
 				});
 				~charArray = [ ];
 			});
-			if(ascii == $>,{
+			if(ascii == $>,{ // next song
 				~songSkip = true;
 				nextSong.value(true);
 				~charArray = [ ];
 			});
-			if(ascii == $<,{
+			if(ascii == $<,{ // prev song
 				~songSkip = true;
 				prevSong.value;
 				n.sendMsg("/prevSong");
 				~charArray = [ ];
 			});
-			if(ascii == $P,{
+			if(ascii == $P,{ // play/pause song
 				pauseSong.value;
 				n.sendMsg("/pause");
 				~charArray = [ ];
 			});
 	}.loop;});
 
+	// actual playing synth
 	SynthDef(\song,{
-		arg inbus, bufnum = 0, amp, rate = 1, startPos = 0;    // Number of the buffer to play
+		arg inbus, bufnum = 0, amp, rate = 1, startPos = 0;
 		var sig;
 		sig = PlayBuf.ar(2, bufnum, rate:rate, startPos:startPos, doneAction:2);
 		Out.ar(inbus,sig*amp!2);
 	}).add;
 
+	// master synth that receives the output of a \song one and applies LPFiltering and the Equalizer
 	SynthDef(\master, {
 		arg inbus , filterSwitch, freq=20000, lboost = 0, mboost = 0, hboost = 0;
 		var sig,in;
@@ -294,7 +303,9 @@ OSCdef('OSCreceiverCloseApp',
 		sampleRate = s.sampleRate;
 		Date.localtime;
 
+		// bus to connect \song and \master
 		~bus = Bus.audio(s,1);
+
 		~master = Synth(\master, [
 			\inbus, ~bus,
 			\filterSwitch, 1
@@ -314,7 +325,8 @@ OSCdef('OSCreceiverCloseApp',
 		// start serial routine
 		~getValues.play;
 
-		OSCdef('OSCreceiverNextPrev',
+		// OSC reveivers
+		OSCdef('OSCreceiverNextPrev',   // next or prev song from GUI button
 			{
 				arg msg;
 				var move = msg[1]; // 1 = next, -1 = prev
@@ -326,7 +338,7 @@ OSCdef('OSCreceiverCloseApp',
 			},
 			"/nextPrev");
 
-		OSCdef('OSCreceiverMenuSelect',
+		OSCdef('OSCreceiverMenuSelect',  // play/pause from GUI button
 			{
 				arg msg;
 				~songPlaying = msg[1];
@@ -342,7 +354,7 @@ OSCdef('OSCreceiverCloseApp',
 			},
 			"/menuSelect");
 
-		OSCdef('OSCreceiverPlayPause',
+		OSCdef('OSCreceiverPlayPause',     // volume from GUI slider
 			{
 				arg msg;
 				pauseSong.value;
@@ -354,7 +366,9 @@ OSCdef('OSCreceiverCloseApp',
 			{
 				arg msg;
 				volume = msg[1];
-				postln(volume);
+				// postln(volume);
+
+				if(mute == 0, {mute = 1;});
 
 				if(~synth.isRunning, {
 					~synth.set(\amp, volume);
@@ -366,11 +380,16 @@ OSCdef('OSCreceiverCloseApp',
 };
 
 ~closeApplications = {
+	// frees playing synths and shuts the serial and OSC connection
+
 	~songSkip = true;
 	s.freeAll;
 	SerialPort.closeAll;
+	n.disconnect;
 	"SHUT DOWN APP - SERVER STILL RUNS.\nOPEN THE GUI AGAIN TO RESTART.\n\n".postln;
 };
+
+"let's Lego!".postln;
 
 )
 
